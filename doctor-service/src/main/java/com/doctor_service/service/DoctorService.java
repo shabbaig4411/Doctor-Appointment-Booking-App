@@ -1,0 +1,132 @@
+package com.doctor_service.service;
+
+import com.doctor_service.dto.AppointmentDetailsDto;
+import com.doctor_service.dto.DoctorDto;
+import com.doctor_service.dto.DoctorResponseDTO;
+import com.doctor_service.dto.DoctorScheduleDTO;
+import com.doctor_service.entity.*;
+import com.doctor_service.repository.*;
+import org.springframework.stereotype.Service;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.*;
+
+@Service
+public class DoctorService {
+
+    private final DoctorRepository doctorRepository;
+    private final StateRepository stateRepository;
+    private final CityRepository cityRepository;
+    private final AreaRepository areaRepository;
+    private final AppointmentDateRepository appointmentDateRepository;
+
+    public DoctorService(DoctorRepository doctorRepository,
+                         StateRepository stateRepository,
+                         CityRepository cityRepository,
+                         AreaRepository areaRepository,
+                         AppointmentDateRepository appointmentDateRepository) {
+        this.doctorRepository = doctorRepository;
+        this.stateRepository = stateRepository;
+        this.cityRepository = cityRepository;
+        this.areaRepository = areaRepository;
+        this.appointmentDateRepository = appointmentDateRepository;
+    }
+
+    public Doctor saveDoctor(DoctorDto doctorDto, String userId) {
+        // ---------- Handle State ----------
+        State existingState = stateRepository
+                .findByNameIgnoreCase(doctorDto.getState())
+                .orElseGet(() -> {
+                    State s = new State();
+                    s.setName(doctorDto.getState());
+                    return stateRepository.save(s);
+                });
+        // ---------- Handle City ----------
+        City existingCity = cityRepository
+                .findByNameIgnoreCase(doctorDto.getCity())
+                .orElseGet(() -> {
+                    City c = new City();
+                    c.setName(doctorDto.getCity());
+                    return cityRepository.save(c);
+                });
+        // ---------- Handle Area ----------
+        Area existingArea = areaRepository
+                .findByNameIgnoreCase(doctorDto.getArea())
+                .orElseGet(() -> {
+                    Area a = new Area();
+                    a.setName(doctorDto.getArea());
+                    return areaRepository.save(a);
+                });
+
+        Doctor doctor = new Doctor();
+        doctor.setUserId(userId); // Extracted From Token
+        doctor.setImageUrl(doctorDto.getImageUrl());
+        doctor.setSpecialization(doctorDto.getSpecialization());
+        doctor.setQualification(doctorDto.getQualification());
+        doctor.setExperience(doctorDto.getExperience());
+        doctor.setAddress(doctorDto.getAddress());
+        doctor.setState(existingState);
+        doctor.setCity(existingCity);
+        doctor.setArea(existingArea);
+
+        return doctorRepository.save(doctor);
+    }
+
+    public AppointmentDate saveAppointmentDetails(AppointmentDetailsDto details) {
+        Optional<AppointmentDate> existing =
+                appointmentDateRepository.findByDoctorIdAndDate(details.getDoctorId(), details.getDate());
+        AppointmentDate appointment;
+        if (existing.isPresent()) {
+            // UPDATE existing record
+            appointment = existing.get();
+        } else {
+            // CREATE new record
+            appointment = new AppointmentDate();
+            appointment.setDoctorId(details.getDoctorId());
+            appointment.setDate(details.getDate());
+        }
+        // Add timeslots
+        Set<TimeSlots> slotSet = new LinkedHashSet<>();
+        for (LocalTime time : details.getTimeSlots()) {
+            TimeSlots ts = new TimeSlots();
+            ts.setTime(time);
+            ts.setAppointmentDate(appointment);
+            slotSet.add(ts);
+        }
+        appointment.setTimeSlots(slotSet);
+        appointment.setFee(details.getFee());
+        return appointmentDateRepository.save(appointment);
+    }
+
+    public List<DoctorResponseDTO> searchDoctorWithAvailability(String specialization, String city) {
+        List<Object[]> rows =
+                doctorRepository.searchAvailableDoctors(specialization, city);
+        Map<Long, DoctorResponseDTO> map = new LinkedHashMap<>();
+        for (Object[] row : rows) {
+            Long doctorId = (Long) row[0];
+            String spec = (String) row[1];
+            String cityName = (String) row[2];
+            LocalDate date = (LocalDate) row[3];
+            LocalTime time = (LocalTime) row[4];
+
+            map.putIfAbsent(
+                    doctorId,
+                    new DoctorResponseDTO(doctorId, spec, cityName)
+            );
+            DoctorResponseDTO dto = map.get(doctorId);
+            DoctorScheduleDTO schedule = dto.getSchedules().stream()
+                    .filter(s -> s.getDate().equals(date))
+                    .findFirst()
+                    .orElse(null);
+            if (schedule == null) {
+                schedule = new DoctorScheduleDTO(date, new ArrayList<>());
+                dto.addSchedule(schedule);
+            }
+            schedule.getTimeSlots().add(time);
+        }
+        return new ArrayList<>(map.values());
+    }
+
+
+}
+
