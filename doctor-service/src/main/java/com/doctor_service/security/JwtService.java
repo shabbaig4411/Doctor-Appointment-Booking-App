@@ -1,11 +1,12 @@
-package com.doctor_service.service;
+package com.doctor_service.security;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
-@Service
+@Component
 public class JwtService {
 
     private final static String SECRET_KEY = "INVISIBLE";  // SAME as auth-service

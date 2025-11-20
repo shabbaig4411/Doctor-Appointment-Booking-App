@@ -11,7 +11,6 @@ import java.util.List;
 @Setter
 public class AppointmentDetailsDto {
 
-    private long doctorId;
     private LocalDate date;
     private float fee;
     private List<LocalTime> timeSlots;

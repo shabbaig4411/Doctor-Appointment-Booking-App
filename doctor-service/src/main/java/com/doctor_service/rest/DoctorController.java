@@ -7,12 +7,14 @@ import com.doctor_service.entity.AppointmentDate;
 import com.doctor_service.entity.Doctor;
 import com.doctor_service.repository.DoctorRepository;
 import com.doctor_service.service.DoctorService;
-import com.doctor_service.service.JwtService;
+import com.doctor_service.security.JwtService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.*;
 
 @RestController
@@ -33,23 +35,35 @@ public class DoctorController {
     @PostMapping("/saveDoctorProfile")
     public ResponseEntity<Map<String, Object>> saveDoctor(
             @RequestHeader("Authorization") String token,
-            @RequestHeader("X-User-Id") String userId,
+            @RequestHeader("X-User-Id") String doctorId,
             @RequestHeader("X-User-Role") String role,
-            @Valid @RequestBody DoctorDto doctorDto) {
+            @Valid @RequestBody DoctorDto doctorDto,
+            BindingResult bindingResult) {
 
         // Remove "Bearer "
         //String actualToken = token.substring(7);
-
         // Extract userId & role from token  By creating JwtService Class
 //        String userId = jwtService.extractUserId(actualToken);
 //        String role   = jwtService.extractRole(actualToken);
-
         // Validate only doctor can call this API
 
+        // Validation errors
+        if (bindingResult.hasErrors()) {
+            List<String> errors = bindingResult.getFieldErrors()
+                    .stream()
+                    .map(e -> e.getField() + ": " + e.getDefaultMessage())
+                    .toList();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "Bad Request!!");
+            response.put("message", "Doctor Failed to save!!!");
+            response.put("data", errors);
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        }
         if (!role.equalsIgnoreCase("DOCTOR")) {
             throw new RuntimeException("Access Denied – Only doctor can create profile");
         }
-        Doctor savedDoctor = doctorService.saveDoctor(doctorDto,userId);
+        Doctor savedDoctor = doctorService.saveDoctor(doctorDto, doctorId);
         Map<String, Object> response = new HashMap<>();
         response.put("status", "success");
         response.put("message", "Doctor saved successfully");
@@ -59,8 +73,31 @@ public class DoctorController {
 
     // http://localhost:5555/doctors/api/v1/doctors/saveAppointmentDetails
     @PostMapping("/saveAppointmentDetails")
-    public ResponseEntity<?> saveAppointmentDetails(@RequestBody AppointmentDetailsDto request) {
-        AppointmentDate saved = doctorService.saveAppointmentDetails(request);
+    public ResponseEntity<?> saveAppointmentDetails(
+            @RequestBody @Valid AppointmentDetailsDto request,
+            @RequestHeader("Authorization") String token,
+            @RequestHeader("X-User-Id") String doctorId,
+            @RequestHeader("X-User-Role") String role,
+            BindingResult bindingResult) {
+
+        if (bindingResult.hasErrors()) {
+            List<String> errors = bindingResult.getFieldErrors()
+                    .stream()
+                    .map(e -> e.getField() + ": " + e.getDefaultMessage())
+                    .toList();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "Bad Request!!");
+            response.put("message", "Appointment Schedule Failed to save!!!");
+            response.put("data", errors);
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        }
+        // Check ONLY doctors can update data
+        if (!role.equalsIgnoreCase("DOCTOR")) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Access Denied – Only DOCTORS can create Schedules.");
+        }
+        AppointmentDate saved = doctorService.saveAppointmentDetails(request, doctorId);
         Map<String, Object> response = new HashMap<>();
         response.put("status", "success");
         response.put("message", "Appointment saved successfully");
@@ -73,8 +110,11 @@ public class DoctorController {
     @GetMapping("/searchDoctors")
     public ResponseEntity<List<?>> searchDoctors(
             @RequestParam String specialization,
-            @RequestParam String city
+            @RequestParam String city,
+            @RequestHeader("X-User-Id") String patientId,
+            @RequestHeader("X-User-Role") String role
     ) {
+
         // 1. Use JPQL Query(1) to get only future dates and timeSlots with dto's and service layer.
         List<DoctorResponseDTO> result =
                 doctorService.searchDoctorWithAvailability(specialization, city);

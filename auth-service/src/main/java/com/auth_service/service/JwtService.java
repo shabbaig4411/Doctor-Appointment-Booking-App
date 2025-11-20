@@ -13,10 +13,10 @@ public class JwtService {
     private static final long EXPIRATION_TIME = 86400000;// 1 day - in seconds
     //private static final String TOKEN_PREFIX = "Bearer ";
 
-    public String generateToken(long userId, String role) {
+    public String generateToken(String userId, String role) {
 
         return JWT.create()
-                .withSubject(String.valueOf(userId))
+                .withSubject(userId)
                 .withClaim("role",role)  //  if we need roll based login
                 .withIssuedAt(new Date(System.currentTimeMillis()))
                 .withExpiresAt(new Date(System.currentTimeMillis() + EXPIRATION_TIME))

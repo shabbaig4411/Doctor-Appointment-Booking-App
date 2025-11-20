@@ -13,13 +13,9 @@ import java.util.List;
 @Table(name = "doctor")
 public class Doctor {
 
-    @Id //  Use ULID  in Service layer set
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id", nullable = false)
-    private Long id;
-
-    @Column(name = "user_id", nullable = false, unique = true)
-    private String userId;
+    @Id
+    @Column(name = "doctor_id", nullable = false, unique = true)
+    private String doctorId;
 
     @Column(name = "url", nullable = false, length = 2000)
     private String imageUrl;

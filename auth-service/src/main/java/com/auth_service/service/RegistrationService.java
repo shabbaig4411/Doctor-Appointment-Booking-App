@@ -36,7 +36,7 @@ public class RegistrationService {
         User user = new User();
         BeanUtils.copyProperties(userDto, user);
         // make id as, private String id;
-        // user.setId(ULIDGenerator.generate());
+        user.setId(ULIDGenerator.generate());
         user.setRole(userDto.getRole().toUpperCase());
         user.setPassword(passwordEncoder.encode(user.getPassword()));
 

@@ -22,48 +22,49 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     // Public endpoints (NO TOKEN REQUIRED)
     private static final List<String> PUBLIC_ENDPOINTS = List.of(
-            "/auth/api/v1/register",
-            "/auth/api/v1/login",
-            "/auth/api/v1/forgotpassword",
-            "/auth/api/v1/otp"
+            "/auth/api/v1/auth/register",
+            "/auth/api/v1/auth/login",
+            "/auth/api/v1/auth/forgotpassword",
+            "/auth/api/v1/auth/otp"
     );
 
     // Protected endpoints WITH REQUIRED ROLES
     private static final Map<String, List<String>> PROTECTED_ENDPOINTS = Map.of(
+            // Doctor protected routes
             "/doctors/api/v1/doctors/saveDoctorProfile", List.of("DOCTOR"),
             "/doctors/api/v1/doctors/saveAppointmentDetails", List.of("DOCTOR"),
-            "/doctors/api/v1/doctors/searchDoctors?specialization=cardiologist&city=bengaluru", List.of("patient"),
-            "/doctors/api/v1/doctors/getDoctorById?id=1", List.of("DOCTOR")
+            "/doctors/api/v1/doctors/getDoctorById?id=1", List.of("DOCTOR"),
+
+            // Patient protected routes
+            "/doctors/api/v1/doctors/searchDoctors",List.of("PATIENT"),
+            "/patients/api/v1/patients/saveProfile", List.of("PATIENT"),
+            "/patients/api/v1/patients/searchDoctors", List.of("PATIENT"),
+            "/patients/api/v1/patients/getById", List.of("PATIENT")
+
     );
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         String path = exchange.getRequest().getURI().getPath();
-
         if (isPublic(path)) {
             return chain.filter(exchange);
         }
-
         String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return unauthorized(exchange);
         }
-
         String token = authHeader.substring(7);
-
         try {
             DecodedJWT jwt = JWT.require(Algorithm.HMAC256(SECRET_KEY))
                     .build()
                     .verify(token);
-
             String role = jwt.getClaim("role").asString();
             String userId = jwt.getSubject();  // USER ID from token
-
             if (!isAllowed(path, role)) {
                 return forbidden(exchange);
             }
-
             // send role + userId to downstream microservices
+            System.out.println("Path is : "+path+"   Role is : "+role);
             exchange = exchange.mutate()
                     .request(req -> req
                             .header("X-User-Role", role)

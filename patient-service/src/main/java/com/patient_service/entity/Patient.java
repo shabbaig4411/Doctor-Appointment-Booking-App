@@ -10,18 +10,23 @@ import lombok.Setter;
 @Table(name = "patient")
 public class Patient {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id", nullable = false)
-    private Long id;
+    @Column(name = "patient_id", nullable = false, unique = true)
+    private String patientId;
 
-    @Column(name = "name", nullable = false)
-    private String name;
+    @ManyToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "state_id")
+    private State state;
 
-    @Column(name = "email", nullable = false)
-    private String email;
+    @ManyToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "city_id")
+    private City city;
 
-    @Column(name = "contact", nullable = false, length = 10)
-    private String contact;
+    @Column(name = "address", nullable = false, length = 1000)
+    private String address;
+
+    @ManyToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "area_id")
+    private Area area;
 
 
 

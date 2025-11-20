@@ -32,7 +32,7 @@ public class DoctorService {
         this.appointmentDateRepository = appointmentDateRepository;
     }
 
-    public Doctor saveDoctor(DoctorDto doctorDto, String userId) {
+    public Doctor saveDoctor(DoctorDto doctorDto, String doctorId) {
         // ---------- Handle State ----------
         State existingState = stateRepository
                 .findByNameIgnoreCase(doctorDto.getState())
@@ -59,7 +59,7 @@ public class DoctorService {
                 });
 
         Doctor doctor = new Doctor();
-        doctor.setUserId(userId); // Extracted From Token
+        doctor.setDoctorId(doctorId); // Extracted From Token
         doctor.setImageUrl(doctorDto.getImageUrl());
         doctor.setSpecialization(doctorDto.getSpecialization());
         doctor.setQualification(doctorDto.getQualification());
@@ -72,38 +72,51 @@ public class DoctorService {
         return doctorRepository.save(doctor);
     }
 
-    public AppointmentDate saveAppointmentDetails(AppointmentDetailsDto details) {
+
+    public AppointmentDate saveAppointmentDetails(AppointmentDetailsDto details, String doctorId) {
+
         Optional<AppointmentDate> existing =
-                appointmentDateRepository.findByDoctorIdAndDate(details.getDoctorId(), details.getDate());
+                appointmentDateRepository.findByDoctorIdAndDate(doctorId, details.getDate());
+
         AppointmentDate appointment;
+
         if (existing.isPresent()) {
-            // UPDATE existing record
             appointment = existing.get();
+
+            // 🟢 SAFE CLEAR (Do NOT replace set!!)
+            Iterator<TimeSlots> it = appointment.getTimeSlots().iterator();
+            while (it.hasNext()) {
+                TimeSlots slot = it.next();
+                it.remove();
+                slot.setAppointmentDate(null); // required for orphanRemoval
+            }
+
         } else {
-            // CREATE new record
             appointment = new AppointmentDate();
-            appointment.setDoctorId(details.getDoctorId());
+            appointment.setDoctorId(doctorId);
             appointment.setDate(details.getDate());
         }
-        // Add timeslots
-        Set<TimeSlots> slotSet = new LinkedHashSet<>();
+
+        // 🟢 ADD NEW SLOTS (the SAFE WAY)
         for (LocalTime time : details.getTimeSlots()) {
             TimeSlots ts = new TimeSlots();
             ts.setTime(time);
             ts.setAppointmentDate(appointment);
-            slotSet.add(ts);
+            appointment.getTimeSlots().add(ts);  // add to existing collection
         }
-        appointment.setTimeSlots(slotSet);
+
         appointment.setFee(details.getFee());
+
         return appointmentDateRepository.save(appointment);
     }
+
 
     public List<DoctorResponseDTO> searchDoctorWithAvailability(String specialization, String city) {
         List<Object[]> rows =
                 doctorRepository.searchAvailableDoctors(specialization, city);
-        Map<Long, DoctorResponseDTO> map = new LinkedHashMap<>();
+        Map<String, DoctorResponseDTO> map = new LinkedHashMap<>();
         for (Object[] row : rows) {
-            Long doctorId = (Long) row[0];
+            String doctorId = (String) row[0];
             String spec = (String) row[1];
             String cityName = (String) row[2];
             LocalDate date = (LocalDate) row[3];
