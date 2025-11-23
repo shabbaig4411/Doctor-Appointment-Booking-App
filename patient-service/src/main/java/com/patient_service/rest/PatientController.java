@@ -92,7 +92,7 @@ public class PatientController {
 
     // http://localhost:5555/patients/api/v1/patients/getById?id=1
     @GetMapping("/getById")
-    public Patient getPatientById(@RequestParam long id) {
+    public Patient getPatientById(@RequestParam String id) {
         // use service layers to interact with repository layer
         return patientRepository.findById(id).get();
     }

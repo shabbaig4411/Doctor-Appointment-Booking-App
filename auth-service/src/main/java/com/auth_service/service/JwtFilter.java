@@ -21,7 +21,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final LoginUserDetailsService loginUserDetailsService;
-    private UserRepo  userRepo;
+    private final UserRepo  userRepo;
 
     public JwtFilter(JwtService jwtService,
                      LoginUserDetailsService loginUserDetailsService,
@@ -36,18 +36,20 @@ public class JwtFilter extends OncePerRequestFilter {
 
         String path = request.getServletPath();
         System.out.println("path: " + path);
-        if (path.startsWith("/api/v1/auth/register") || path.startsWith("/api/v1/auth/login") || path.startsWith("/api/v1/auth/forgotpassword")|| path.startsWith("/api/v1/auth/otp/")) {
+        if (path.startsWith("/api/v1/auth/register") ||
+                path.startsWith("/api/v1/auth/login") ||
+                path.startsWith("/api/v1/auth/forgotpassword")||
+                path.startsWith("/api/v1/auth/otp/")
+        ) {
             filterChain.doFilter(request, response);
             return;
         }
         String headerToken = request.getHeader("Authorization");
         if (headerToken != null && headerToken.startsWith("Bearer ")) {
             String token = headerToken.substring(7);
-            String loginSubject = jwtService.validateTokenAndRetrieveSubject(token);
+            String userId = jwtService.validateTokenAndRetrieveSubject(token);
 
-            if (loginSubject != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-
-                long userId = Long.parseLong(loginSubject);
+            if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
                 User user = userRepo.findById(userId).orElse(null);
                 if (user != null) {

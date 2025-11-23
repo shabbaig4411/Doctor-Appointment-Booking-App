@@ -1,6 +1,7 @@
 package com.doctor_service.rest;
 
 import com.doctor_service.dto.AppointmentDetailsDto;
+import com.doctor_service.dto.DoctorBookingResponseDto;
 import com.doctor_service.dto.DoctorDto;
 import com.doctor_service.dto.DoctorResponseDTO;
 import com.doctor_service.entity.AppointmentDate;
@@ -9,6 +10,7 @@ import com.doctor_service.repository.DoctorRepository;
 import com.doctor_service.service.DoctorService;
 import com.doctor_service.security.JwtService;
 import jakarta.validation.Valid;
+import jdk.jfr.Frequency;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
@@ -111,6 +113,7 @@ public class DoctorController {
     public ResponseEntity<List<?>> searchDoctors(
             @RequestParam String specialization,
             @RequestParam String city,
+            @RequestHeader("Authorization") String patientToken,
             @RequestHeader("X-User-Id") String patientId,
             @RequestHeader("X-User-Role") String role
     ) {
@@ -174,10 +177,30 @@ public class DoctorController {
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
+
+    // http://localhost:5555/doctors/api/v1/doctors/getDoctorDetailsForBooking
+    @GetMapping("/getDoctorDetailsForBooking")
+    public DoctorBookingResponseDto validateSchedule(
+            @RequestHeader("Authorization") String patientToken,
+            @RequestHeader("X-User-Id") String patientId,
+            @RequestHeader("X-User-Role") String role,
+            @RequestParam String doctorId,
+            @RequestParam String appointmentDateId,
+            @RequestParam long fee,
+            @RequestParam String timeSlotId
+    ) {
+        if (!role.equalsIgnoreCase("PATIENT")) {
+            return DoctorBookingResponseDto.builder()
+                    .message("INVALID PATIENT!!!").build();
+        }
+        return doctorService.verifyDoctorSchedule(doctorId, appointmentDateId, fee, timeSlotId);
+    }
+
+
     // http://localhost:5555/doctors/api/v1/doctors/getDoctorById?id=1
     @GetMapping("/getDoctorById")
     public Doctor getDoctorById(
-            @RequestParam long id
+            @RequestParam String id
 
     ) {
         return doctorRepository.findById(id).get();

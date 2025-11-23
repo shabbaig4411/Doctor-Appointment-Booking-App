@@ -246,4 +246,9 @@ public class UserController {
         return new ResponseEntity<>(res, HttpStatus.OK);
     }
 
+
+    @GetMapping("/getDoctorNameById")
+    String getDoctorNameById(@RequestParam String doctorId) {
+        return userRepo.getNameById(doctorId);
+    }
 }

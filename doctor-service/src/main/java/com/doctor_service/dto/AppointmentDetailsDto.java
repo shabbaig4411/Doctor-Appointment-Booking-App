@@ -12,7 +12,7 @@ import java.util.List;
 public class AppointmentDetailsDto {
 
     private LocalDate date;
-    private float fee;
+    private long fee;
     private List<LocalTime> timeSlots;
 
 }

@@ -13,9 +13,8 @@ import java.time.LocalTime;
 @Table(name = "time_slots")
 public class TimeSlots {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id", nullable = false)
-    private Long id;
+    @Column(name = "timeslot_id", nullable = false, unique = true)
+    private String timeslotId;
 
     @Column(name = "time", nullable = false)
     private LocalTime time;

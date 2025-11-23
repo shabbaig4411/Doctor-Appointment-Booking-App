@@ -62,8 +62,8 @@ public class AppConfig {
                 .authorizeHttpRequests(auth -> {
                     auth
                             .requestMatchers(publicEndpoints).permitAll()
-                            .requestMatchers("/api/v1/user/home").hasAuthority("DOCTOR")
-                            .requestMatchers("/api/v1/admin/home").hasAuthority("PATIENT")
+                            .requestMatchers("/api/v1/auth/getDoctorNameById").hasAuthority("PATIENT")
+                            .requestMatchers("/api/v1/auth/").hasAuthority("DOCTOR")
     //  if multiple user need to access any single api  use  .hasAnyRole("1","2")
     // we can use .hasRole("USER") also, but Spring Security will add Prefix "ROLE_" to it.
     // it will become ROLE_USER while matching from DB role we need to add explicitly "ROLE_" before matching it.

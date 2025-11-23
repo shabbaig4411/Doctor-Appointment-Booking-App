@@ -2,25 +2,36 @@ package com.patient_service.dto;
 
 import lombok.Getter;
 import lombok.Setter;
-
 import java.util.ArrayList;
 import java.util.List;
 
 @Getter
 @Setter
 public class DoctorResponseDTO {
+
     private String doctorId;
-    private String doctorName;
+    private String name;
     private String specialization;
-    private String areaName;
+    private String address;
+    private String area;
+    private String city;
+    private String state;
     private List<DoctorScheduleDTO> schedules;
 
-    public DoctorResponseDTO(String doctorId, String doctorName,
-                             String specialization, String areaName) {
+    public DoctorResponseDTO(String doctorId,
+                             String name,
+                             String specialization,
+                             String address,
+                             String area,
+                             String city,
+                             String state) {
         this.doctorId = doctorId;
-        this.doctorName = doctorName;
+        this.name = name;
         this.specialization = specialization;
-        this.areaName = areaName;
+        this.address = address;
+        this.area = area;
+        this.city = city;
+        this.state = state;
         this.schedules = new ArrayList<>();
     }
 

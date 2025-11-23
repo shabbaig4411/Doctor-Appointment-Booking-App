@@ -11,7 +11,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
-
 import java.util.List;
 import java.util.Map;
 
@@ -25,7 +24,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/auth/api/v1/auth/register",
             "/auth/api/v1/auth/login",
             "/auth/api/v1/auth/forgotpassword",
-            "/auth/api/v1/auth/otp"
+            "/auth/api/v1/auth/otp",
+            "/payments/api/v1/payments/success"
     );
 
     // Protected endpoints WITH REQUIRED ROLES
@@ -33,13 +33,19 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             // Doctor protected routes
             "/doctors/api/v1/doctors/saveDoctorProfile", List.of("DOCTOR"),
             "/doctors/api/v1/doctors/saveAppointmentDetails", List.of("DOCTOR"),
-            "/doctors/api/v1/doctors/getDoctorById?id=1", List.of("DOCTOR"),
+            "/doctors/api/v1/doctors/getDoctorById", List.of("DOCTOR"),
 
             // Patient protected routes
             "/doctors/api/v1/doctors/searchDoctors",List.of("PATIENT"),
             "/patients/api/v1/patients/saveProfile", List.of("PATIENT"),
             "/patients/api/v1/patients/searchDoctors", List.of("PATIENT"),
-            "/patients/api/v1/patients/getById", List.of("PATIENT")
+            "/patients/api/v1/patients/getById", List.of("PATIENT"),
+
+            // bookings protrected routes
+            "/bookings/api/v1/bookings/bookAppointment",List.of("PATIENT"),
+
+            // payments protected routes
+            "/payments/api/v1/payments/generatePaymentUrl",List.of("PATIENT")
 
     );
 
@@ -71,11 +77,9 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                             .header("X-User-Id", userId)
                     )
                     .build();
-
         } catch (JWTVerificationException e) {
             return unauthorized(exchange);
         }
-
         return chain.filter(exchange);
     }
 

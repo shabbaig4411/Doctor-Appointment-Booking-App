@@ -4,8 +4,9 @@ import com.auth_service.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.web.bind.annotation.RequestParam;
 
-public interface UserRepo extends JpaRepository<User, Long> {
+public interface UserRepo extends JpaRepository<User, String> {
 
     boolean existsByEmail(String email);
 
@@ -15,4 +16,7 @@ public interface UserRepo extends JpaRepository<User, Long> {
 //    User findUserIdAndRole(String mobile);
 
     User findByMobile(String mobile);
+
+    @Query(value = "SELECT name FROM user WHERE id = :doctorId", nativeQuery = true)
+    String getNameById(@Param("doctorId") String doctorId);
 }

@@ -15,8 +15,8 @@ import java.util.Set;
 @Table(name = "appointment_date")
 public class AppointmentDate {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    @Column(name = "date_id", nullable = false, unique = true)
+    private String dateId;
 
     @Column(name = "doctor_id", nullable = false)
     private String doctorId;
@@ -29,7 +29,7 @@ public class AppointmentDate {
     private Set<TimeSlots> timeSlots = new LinkedHashSet<>();
 
     @Column(name="fee", nullable = false)
-    private float fee;
+    private long fee;
 
 
 
