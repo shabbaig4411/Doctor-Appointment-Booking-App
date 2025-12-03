@@ -1,11 +1,24 @@
 package com.doctor_service.service;
 
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.AmazonServiceException;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.PutObjectResult;
 import com.doctor_service.clients.AuthClient;
+import com.doctor_service.config.S3Config;
 import com.doctor_service.dto.*;
 import com.doctor_service.entity.*;
 import com.doctor_service.repository.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.*;
@@ -19,20 +32,26 @@ public class DoctorService {
     private final CityRepository cityRepository;
     private final AreaRepository areaRepository;
     private final AppointmentDateRepository appointmentDateRepository;
+    private final AmazonS3 s3Client;
 
     public DoctorService(AuthClient authClient,
                          DoctorRepository doctorRepository,
                          StateRepository stateRepository,
                          CityRepository cityRepository,
                          AreaRepository areaRepository,
-                         AppointmentDateRepository appointmentDateRepository) {
+                         AppointmentDateRepository appointmentDateRepository,
+                         AmazonS3 s3Client) {
         this.authClient = authClient;
         this.doctorRepository = doctorRepository;
         this.stateRepository = stateRepository;
         this.cityRepository = cityRepository;
         this.areaRepository = areaRepository;
         this.appointmentDateRepository = appointmentDateRepository;
+        this.s3Client = s3Client;
     }
+
+    @Value("${app.s3.bucket}")
+    private String s3BucketName;
 
     public Doctor saveDoctor(DoctorDto doctorDto, String doctorId) {
         // ---------- Handle State ----------
@@ -62,7 +81,6 @@ public class DoctorService {
 
         Doctor doctor = new Doctor();
         doctor.setDoctorId(doctorId); // Extracted From Token
-        doctor.setImageUrl(doctorDto.getImageUrl());
         doctor.setSpecialization(doctorDto.getSpecialization());
         doctor.setQualification(doctorDto.getQualification());
         doctor.setExperience(doctorDto.getExperience());
@@ -72,6 +90,61 @@ public class DoctorService {
         doctor.setArea(existingArea);
 
         return doctorRepository.save(doctor);
+    }
+
+
+    public String saveDoctorImage(String doctorId, MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new RuntimeException("File is empty");
+        }
+        String originalFilename = file.getOriginalFilename();
+        String ext = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            ext = originalFilename.substring(originalFilename.lastIndexOf('.'));
+        }
+        // build a key (path) for S3, e.g. randomid+{ext}
+        String key = UUID.randomUUID().toString() + ext;
+        System.out.println(key); // 52353c9f-15a4-48ea-8268-ebbb1f6498e6.jpg
+
+        try (InputStream inputStream = file.getInputStream()) {
+            System.out.println(inputStream); // sun.nio.ch.ChannelInputStream@3f96e513
+
+            ObjectMetadata metadata = new ObjectMetadata();
+            long contentLength = file.getSize(); // important!
+            if (contentLength > 0) {
+                System.out.println(contentLength); // 22467
+
+                metadata.setContentLength(contentLength);
+            }
+            String contentType = file.getContentType();
+            System.out.println(contentType); // image/jpeg
+
+            if (contentType != null) metadata.setContentType(contentType);
+
+            PutObjectRequest putRequest = new PutObjectRequest(s3BucketName, key, inputStream, metadata);
+                   // .withCannedAcl(CannedAccessControlList.PublicRead);
+
+            s3Client.putObject(putRequest); // this will stream the upload using supplied metadata
+
+            // return public url
+            URL url = s3Client.getUrl(s3BucketName, key);
+            System.out.println(url.toString()); // https://doctor-appointment-booking-app.s3.ap-south-1.amazonaws.com/eaf0ab6b-4b5d-4ebb-b02e-ded9f36805af.jpg
+            Optional<Doctor> doctor = doctorRepository.findById(doctorId);
+            doctor.get().setImageUrl(url.toString());
+            doctorRepository.save(doctor.get());
+            return url.toString();
+
+        } catch (AmazonServiceException ase) {
+            System.out.println("AmazonServiceException uploading file to S3" + ase);
+            throw new RuntimeException("Failed Image Upload: S3 service error", ase);
+        } catch (AmazonClientException ace) {
+            System.out.println("AmazonClientException uploading file to S3" + ace);
+            throw new RuntimeException("Failed Image Upload: S3 client error", ace);
+        } catch (IOException ioe) {
+            System.out.println("IOException reading multipart file" + ioe);
+            throw new RuntimeException("Failed Image Upload", ioe);
+        }
+
     }
 
 

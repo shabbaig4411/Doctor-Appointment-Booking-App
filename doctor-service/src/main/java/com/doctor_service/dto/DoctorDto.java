@@ -9,9 +9,6 @@ import lombok.Setter;
 @Setter
 public class DoctorDto {
 
-    @NotBlank(message = "Image URL cannot be empty!")
-    private String imageUrl;
-
     @NotBlank(message = "Specialization cannot be empty!")
     private String specialization;
 

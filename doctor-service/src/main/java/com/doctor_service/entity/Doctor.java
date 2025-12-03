@@ -17,7 +17,7 @@ public class Doctor {
     @Column(name = "doctor_id", nullable = false, unique = true)
     private String doctorId;
 
-    @Column(name = "url", nullable = false, length = 2000)
+    @Column(name = "imageUrl", length = 2000)
     private String imageUrl;
 
     @Column(name = "specialization", nullable = false)

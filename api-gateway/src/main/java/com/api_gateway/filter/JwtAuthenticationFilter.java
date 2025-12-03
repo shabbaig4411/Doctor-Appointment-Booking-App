@@ -32,6 +32,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     private static final Map<String, List<String>> PROTECTED_ENDPOINTS = Map.of(
             // Doctor protected routes
             "/doctors/api/v1/doctors/saveDoctorProfile", List.of("DOCTOR"),
+            "/doctors/api/v1/doctors/saveDoctorImage", List.of("DOCTOR"),
             "/doctors/api/v1/doctors/saveAppointmentDetails", List.of("DOCTOR"),
             "/doctors/api/v1/doctors/getDoctorById", List.of("DOCTOR"),
 

@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 
@@ -35,21 +36,13 @@ public class DoctorController {
 
     // http://localhost:5555/doctors/api/v1/doctors/saveDoctorProfile
     @PostMapping("/saveDoctorProfile")
-    public ResponseEntity<Map<String, Object>> saveDoctor(
+    public ResponseEntity<Map<String, Object>> saveDoctorProfile(
             @RequestHeader("Authorization") String token,
             @RequestHeader("X-User-Id") String doctorId,
             @RequestHeader("X-User-Role") String role,
             @Valid @RequestBody DoctorDto doctorDto,
             BindingResult bindingResult) {
 
-        // Remove "Bearer "
-        //String actualToken = token.substring(7);
-        // Extract userId & role from token  By creating JwtService Class
-//        String userId = jwtService.extractUserId(actualToken);
-//        String role   = jwtService.extractRole(actualToken);
-        // Validate only doctor can call this API
-
-        // Validation errors
         if (bindingResult.hasErrors()) {
             List<String> errors = bindingResult.getFieldErrors()
                     .stream()
@@ -71,6 +64,26 @@ public class DoctorController {
         response.put("message", "Doctor saved successfully");
         response.put("data", savedDoctor);
         return ResponseEntity.ok(response);
+    }
+
+    // http://localhost:5555/doctors/api/v1/doctors/saveDoctorImage
+    @PostMapping("/saveDoctorImage")
+    public ResponseEntity<Map<String, Object>> saveDoctorImage(
+            @RequestHeader("Authorization") String token,
+            @RequestHeader("X-User-Id") String doctorId,
+            @RequestHeader("X-User-Role") String role,
+            @RequestParam("file") MultipartFile file
+    ) {
+
+//        System.out.println("🎉🎉🎉🎉 THis is Image Uploader");
+        String doctorImageUrl = doctorService.saveDoctorImage(doctorId, file);
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", "success");
+        response.put("message", "Doctor Image saved successfully");
+        response.put("data", doctorImageUrl);
+        return ResponseEntity.ok(response);
+
+
     }
 
     // http://localhost:5555/doctors/api/v1/doctors/saveAppointmentDetails
